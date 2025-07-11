@@ -1,0 +1,67 @@
+﻿# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+[Bb]in/
+[Oo]bj/
+
+# Rider caches
+.idea/.idea.*
+.idea_modules/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/packages/*
+!**/packages/build/
+!**/packages/repositories.config
+
+# Visual Studio Code
+.vscode/
+
+# DotCover
+*.dotCover
+
+# Rider logs
+.idea/.idea.log
+.idea/.idea_modules.log
+
+# Local history
+.idea/.localHistory/
+
+# Rider workspace
+*.sln.ide
+
+# Rider C# project specific
+*.resharper
+*.DotSettings.user
+*.sln.DotSettings
+
+# Rider run configurations
+.idea/runConfigurations/
+
+# Rider tasks
+.idea/tasks.xml
+
+# Rider deployment
+.idea/deployment.xml
+.idea/deployment/
+
+# Rider shelf
+.idea/shelf/
