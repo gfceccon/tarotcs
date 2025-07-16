@@ -2,23 +2,26 @@
 
 using Tarot.Game;
 
-
+// TODO Metrics handler
 public class Metrics
 {
     private static Metrics? _instance;
+    private string _outputFile = "metrics.csv";
 
     public static Metrics Instance => _instance ??= new Metrics();
 
-    private Dictionary<string, List<long>> _data = new();
+    private readonly Dictionary<string, List<long>> _data = [];
 
 
     private Metrics()
     {
     }
 
-    public void SetOutputFile(string filePath)
+    public void SetOutputFile(string? filePath)
     {
-        // Logic to set output file for metrics
+        if (string.IsNullOrEmpty(filePath))
+            throw new ArgumentException("O caminho do arquivo de saída não pode ser nulo ou vazio.");
+        _outputFile = filePath;
     }
 
     public void RecordMetric(string metricName, TarotGameState state, long value)

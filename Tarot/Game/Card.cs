@@ -1,17 +1,29 @@
-﻿namespace Tarot.Game;
+﻿
+namespace Tarot.Game;
 
+/// <summary>
+/// This class contains the card actions for the Tarot game.
+/// It provides methods to deal cards, determine suits and ranks, and calculate card values.
+/// All cards are index based, from 0 to 77.
+/// The suits are Spades, Hearts, Clubs, Diamonds.
+/// The suits cards range from 0 to 55 (14 cards each for Spades, Hearts, Clubs, Diamonds).
+/// The trumps are from 56 to 77, with special cards like:
+/// - The Fool (56)
+/// - The Petit (57)
+/// - The Monde (77)
+/// </summary>
 public static class Card
 {
     /// <summary>
     /// Shuffle the deck and deals cards to players and returns the hands and chien.
     /// </summary>
     /// <returns>List of byte array, first 4 are player hands, last array is the chien cards.</returns>
-    public static  List<byte[]> DealCards()
+    public static List<byte[]> DealCards()
     {
         var cards = Enumerable.Range(0, Constants.DeckSize).Select(i => (byte)i).ToArray();
         Rng.Random.Shuffle(cards);
         var chien = cards.Take(Constants.ChienSize).ToArray();
-        cards = cards.Skip(Constants.ChienSize).ToArray();
+        cards = [.. cards.Skip(Constants.ChienSize)];
         var hands = cards.Chunk(Constants.HandSize).ToList();
         hands.Add(chien);
         return hands;
@@ -43,11 +55,11 @@ public static class Card
             return (byte)(card % 14); // 0 to 13 for suits
         return (byte)(card - 56);     // 0 to 21 for trumps
     }
-    
+
     private static readonly string[] SuitNames = ["Spades", "Hearts", "Clubs", "Diamonds"];
     private static readonly string[] RankNames = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Knight", "Queen", "King"
     ];
-    
+
     /// <summary>
     /// Returns the name of a card in English.
     /// </summary>
@@ -115,7 +127,7 @@ public static class Card
     {
         return card == Constants.Fool;
     }
-    
+
     /// <summary>
     /// Checks if the card is a Bout (The Fool, Petit, or Monde)
     /// </summary>
@@ -127,7 +139,7 @@ public static class Card
     }
 
     // 
-    
+
     /// <summary>
     /// Sums the points of a list of cards
     /// </summary>

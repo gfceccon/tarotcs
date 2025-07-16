@@ -5,7 +5,7 @@ using Tarot.Game;
 public class SimulateArgs
 {
     [Option('o', "output", Required = false, Default ="output.csv", HelpText = "Arquivo de saída.")]
-    public string? Output { get; set; }
+    public required string Output { get; set; }
 
     [Option('g', "games", Required = false, Default = 10, HelpText = "Número de jogos.")]
     public int NumberOfGames { get; set; }
@@ -19,12 +19,14 @@ public class SimulateArgs
 
 public static class SimulateParser
 {
-    public static SimulateArgs? Parse(string[] args)
+    public static SimulateArgs Parse(string[] args)
     {
         SimulateArgs? parsed = null;
         Parser.Default.ParseArguments<SimulateArgs>(args)
             .WithParsed(opts => parsed = opts)
             .WithNotParsed(errs => throw new ArgumentException("Argumentos inválidos."));
+        if (parsed == null)
+            throw new ArgumentException("Argumentos inválidos.");
         return parsed;
     }
 }
