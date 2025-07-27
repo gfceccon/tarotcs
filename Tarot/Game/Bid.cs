@@ -29,6 +29,26 @@ public readonly struct BidAction(byte value) : IEquatable<BidAction>
         return !(left == right);
     }
     
+    public static bool operator <(BidAction left, BidAction right)
+    {
+        return left.Value < right.Value;
+    }
+
+    public static bool operator >(BidAction left, BidAction right)
+    {
+        return left.Value > right.Value;
+    }
+
+    public static bool operator <(BidAction left, byte right)
+    {
+        return left.Value < right;
+    }
+
+    public static bool operator >(BidAction left, byte right)
+    {
+        return left.Value > right;
+    }
+
     public static implicit operator byte(BidAction action) => action.Value;
     public static implicit operator BidAction(byte value) => new(value);
 }

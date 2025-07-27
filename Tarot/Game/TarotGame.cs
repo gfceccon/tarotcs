@@ -1,19 +1,28 @@
 ﻿namespace Tarot.Game;
 
-public enum ActionKind: byte { Bid, Card, Declaration }
+public enum ActionKind : byte { Bid, Card, Declaration }
 public readonly struct GenericAction(byte value, ActionKind kind)
 {
     public byte Value { get; } = value;
     public ActionKind Kind { get; } = kind;
 
-    public static implicit operator byte(GenericAction result)
-        => result.Value;
-    public static implicit operator BidAction(GenericAction result)
-        => new(result.Value);
-    public static implicit operator CardAction(GenericAction result)
-        => new(result.Value);
-    public static implicit operator DeclarationAction(GenericAction result)
-        => new(result.Value);
+    public static implicit operator byte(GenericAction action)
+        => action.Value;
+    public static implicit operator BidAction(GenericAction action)
+        => new(action.Value);
+    public static implicit operator CardAction(GenericAction action)
+        => new(action.Value);
+    public static implicit operator DeclarationAction(GenericAction action)
+        => new(action.Value);
+
+    public static implicit operator GenericAction(BidAction action)
+        => new(action.Value, ActionKind.Bid);
+
+    public static implicit operator GenericAction(CardAction action)
+        => new(action.Value, ActionKind.Card);
+
+    public static implicit operator GenericAction(DeclarationAction action)
+        => new(action.Value, ActionKind.Declaration);
 
     public static ActionKind FromPhase(Phase phase)
     {
@@ -23,7 +32,7 @@ public readonly struct GenericAction(byte value, ActionKind kind)
             Phase.Chien => ActionKind.Card,
             Phase.PoigneeDeclaration => ActionKind.Declaration,
             Phase.ChelemDeclaration => ActionKind.Declaration,
-            Phase.Playing => ActionKind.Card,
+            Phase.Play => ActionKind.Card,
             _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, null)
         };
     }
@@ -50,22 +59,17 @@ public struct TarotGameState
     /// <param name="bids">Bids made by each player.</param>
     /// <param name="declarations">Declarations made by each player.</param>
     public TarotGameState(Player current, Player taker, CardAction[] currentTrick, CardAction[] publicCards, CardAction[] playedCards, Player[] winners,
-        CardAction[] playedTricks, List<CardAction[]> playerHands, CardAction[] chien, CardAction[] discards,
+        CardAction[] playedTricks, CardAction[] playerHands, CardAction[] chien, CardAction[] discards,
         BidAction[] bids, BidAction takerBid, bool isChelemDeclared, DeclarationAction[] declarations)
     {
         // Validate the sizes of the arrays to ensure they match expected constants.
         if (currentTrick.Length != Constants.Players || publicCards.Length != Constants.DeckSize ||
             playedCards.Length != Constants.DeckSize || winners.Length != Constants.TricksSize ||
             playedTricks.Length != Constants.TricksSize * Constants.Players ||
-            playerHands.Count != Constants.Players || chien.Length != Constants.ChienSize ||
+            playerHands.Length != Constants.HandSize * Constants.Players || chien.Length != Constants.ChienSize ||
             discards.Length != Constants.ChienSize || bids.Length != Constants.BidSize ||
             declarations.Length != Constants.DeclarationSize)
             throw new Exception("Invalid game state initialization.");
-
-        // Validate player hands to ensure each player's hand has the correct size.
-        for (var i = 0; i < playerHands.Count && i < Constants.Players; i++)
-            if (playerHands[i].Length != Constants.HandSize)
-                throw new Exception("Invalid player hand size.");
 
         // Conversão dos parâmetros byte[] para structs
         Bids = new BidAction[bids.Length];
@@ -102,21 +106,17 @@ public struct TarotGameState
         for (int i = 0; i < playedTricks.Length; i++)
             PlayedTricks[i] = playedTricks[i];
 
-        PlayerHands = new();
-        for (int i = 0; i < playerHands.Count; i++)
-        {
-            PlayerHands.Add(new CardAction[playerHands[i].Length]);
-            for (int j = 0; j < playerHands[i].Length; j++)
-                PlayerHands[i][j] = playerHands[i][j];
-        }
+        PlayerHands = new CardAction[Constants.HandSize * Constants.Players];
+        for (int i = 0; i < playerHands.Length; i++)
+            PlayerHands[i] = playerHands[i];
 
         Chien = new CardAction[chien.Length];
         for (int i = 0; i < chien.Length; i++)
             Chien[i] = chien[i];
 
-        Discards = new CardAction[discards.Length];
+        Discard = new CardAction[discards.Length];
         for (int i = 0; i < discards.Length; i++)
-            Discards[i] = discards[i];
+            Discard[i] = discards[i];
 
         // Initialize counters and flags.
         BidCounter = 0;
@@ -124,8 +124,7 @@ public struct TarotGameState
         DiscardCounter = 0;
         TrickCounter = 0;
         TricksCounter = 0;
-        FoolPaid = false;
-        FoolPlayer = 0;
+        FoolPlayer = new Player(0);
         FoolTrickIndex = -1;
     }
 
@@ -143,12 +142,12 @@ public struct TarotGameState
     public CardAction[] PlayedTricks;
     /// <summary>Array of winners for each trick played.</summary>
     public Player[] Winners;
-    /// <summary>The hands of each player.</summary>
-    public List<CardAction[]> PlayerHands;
+    /// <summary>The hands of all players in a vector.</summary>
+    public CardAction[] PlayerHands;
     /// <summary>The chien (dog) cards set aside during the deal.</summary>
     public CardAction[] Chien;
     /// <summary>Cards discarded by the taker.</summary>
-    public CardAction[] Discards;
+    public CardAction[] Discard;
     /// <summary>Bids made by each player.</summary>
     public BidAction[] Bids;
     /// <summary>Taker's current bid.</summary>
@@ -167,37 +166,25 @@ public struct TarotGameState
     public int TrickCounter = 0;
     /// <summary> Counter for the number of tricks played. </summary>
     public int TricksCounter = 0;
-    /// <summary> Indicates whether the Fool card has been paid. </summary>
-    public bool FoolPaid = false;
     /// <summary> The index of the player who played the Fool. </summary>
-    public byte FoolPlayer;
+    public Player FoolPlayer;
     /// <summary> The index of the trick in which the Fool was played. </summary>
     public int FoolTrickIndex;
     /// <summary>
     /// The current phase of the game (e.g., Bidding, Chien, Declaration, Playing, End).
     /// </summary>
     public Phase Phase = Phase.Bidding;
-}
 
-/// <summary>
-/// Main class for managing the Tarot game logic, state transitions, and player actions.
-/// </summary>
-public class TarotGame
-{
-    /// <summary>
-    /// The current state of the game, including all cards, bids, and player hands.
-    /// </summary>
-    public TarotGameState State;
 
     /// <summary>
     /// Initializes a new TarotGame with a fresh deal and default state.
     /// </summary>
-    public TarotGame()
+    public TarotGameState()
     {
         var (hands, chien) = Card.DealCards();
-        State = new TarotGameState(
-            current: new Player(0),
-            taker: new Player(0),
+        this = new TarotGameState(
+            current: new Player(1),
+            taker: new Player(1),
             currentTrick: new CardAction[Constants.TrickSize],
             publicCards: new CardAction[Constants.DeckSize],
             playedCards: new CardAction[Constants.DeckSize],
@@ -213,7 +200,69 @@ public class TarotGame
         );
     }
 
-    protected static GenericAction[] ToActionResults<T>(T[] actions, ActionKind kind) where T : struct
+    public readonly TarotGameState Clone()
+    {
+        return new TarotGameState(
+            current: Current,
+            taker: Taker,
+            currentTrick: (CardAction[])CurrentTrick.Clone(),
+            publicCards: (CardAction[])PublicCards.Clone(),
+            playedCards: (CardAction[])PlayedCards.Clone(),
+            winners: (Player[])Winners.Clone(),
+            playedTricks: (CardAction[])PlayedTricks.Clone(),
+            playerHands: (CardAction[])PlayerHands.Clone(),
+            chien: (CardAction[])Chien.Clone(),
+            discards: (CardAction[])Discard.Clone(),
+            bids: (BidAction[])Bids.Clone(),
+            declarations: (DeclarationAction[])Declarations.Clone(),
+            takerBid: TakerBid,
+            isChelemDeclared: ChelemDeclared
+        );
+    }
+
+    public override readonly string ToString()
+    {
+        var str = "TarotGame State:\n";
+        str += $"Current: {Current}\n";
+        str += $"Taker: {Taker}\n";
+        str += $"CurrentTrick: [{string.Join(", ", CurrentTrick ?? [])}]\n";
+        str += $"PublicCards: [{string.Join(", ", PublicCards ?? [])}]\n";
+        str += $"PlayedCards: [{string.Join(", ", PlayedCards ?? [])}]\n";
+        str += $"PlayedTricks: [{string.Join(", ", PlayedTricks ?? [])}]\n";
+        str += "PlayerHands: [\n";
+        if (PlayerHands != null)
+        {
+            for (int i = 0; i < PlayerHands.Length; i++)
+            {
+                str += $"  Player {i}: [{string.Join(", ", PlayerHands[i])}]\n";
+            }
+        }
+        str += "]\n";
+        str += $"Chien: [{string.Join(", ", Chien ?? [])}]\n";
+        str += $"Bids: [{string.Join(", ", Bids ?? [])}]\n";
+        str += $"TakerBid: {TakerBid}\n";
+        str += $"Declarations: [{string.Join(", ", Declarations ?? [])}]\n";
+        str += $"ChelemDeclared: {ChelemDeclared}\n";
+        str += $"BidCounter: {BidCounter}\n";
+        str += $"DeclarationCounter: {DeclarationCounter}\n";
+        str += $"DiscardCounter: {DiscardCounter}\n";
+        str += $"TrickCounter: {TrickCounter}\n";
+        str += $"TricksCounter: {TricksCounter}\n";
+        str += $"FoolPlayer: {FoolPlayer}\n";
+        str += $"FoolTrickIndex: {FoolTrickIndex}\n";
+        str += $"Phase: {Phase}\n";
+        return str;
+    }
+}
+
+/// <summary>
+/// Represents the Tarot game, providing methods to manage game state, actions, and results.
+/// This class encapsulates the game logic and state transitions.
+/// It allows for applying actions, retrieving legal actions, and calculating results.
+/// </summary>
+public static class TarotGame
+{
+    public static GenericAction[] ToActionResults<T>(T[] actions, ActionKind kind) where T : struct
     {
         var results = new GenericAction[actions.Length];
         for (int i = 0; i < actions.Length; i++)
@@ -225,7 +274,7 @@ public class TarotGame
     /// Returns the legal actions available to the current player, depending on the game phase.
     /// </summary>
     /// <returns>Array of legal action codes.</returns>
-    public GenericAction[] GetLegalActions()
+    public static GenericAction[] GetLegalActions(TarotGameState State)
     {
         var type = GenericAction.FromPhase(State.Phase);
         switch (State.Phase)
@@ -240,7 +289,7 @@ public class TarotGame
             case Phase.ChelemDeclaration:
                 var legalDeclarations = LegalAction.GetLegalDeclarationActions(State);
                 return ToActionResults(legalDeclarations, type);
-            case Phase.Playing:
+            case Phase.Play:
                 var legalPlays = LegalAction.GetLegalPlayActions(State);
                 return ToActionResults(legalPlays, type);
             default:
@@ -252,7 +301,7 @@ public class TarotGame
     /// Returns the possible chance actions and their probabilities for the current phase.
     /// </summary>
     /// <returns>List of tuples containing action code and probability.</returns>
-    public ChanceAction[] GetChanceActions()
+    public static ChanceAction[] GetChanceActions(TarotGameState State)
     {
         return State.Phase switch
         {
@@ -269,7 +318,7 @@ public class TarotGame
     /// Then updates the current player to the next player based on the action taken.
     /// </summary>
     /// <param name="action">The action code to apply.</param>
-    public void ApplyAction(byte action)
+    public static void ApplyAction(TarotGameState State, byte action)
     {
         var player = State.Phase switch
         {
@@ -277,7 +326,7 @@ public class TarotGame
             Phase.Chien => Action.ApplyChien(State, new CardAction(action)),
             Phase.ChelemDeclaration => Action.ApplyDeclaration(State, new DeclarationAction(action)),
             Phase.PoigneeDeclaration => Action.ApplyDeclaration(State, new DeclarationAction(action)),
-            Phase.Playing => Action.ApplyCard(State, new CardAction(action)),
+            Phase.Play => Action.ApplyCard(State, new CardAction(action)),
             _ => State.Current
         };
         State.Current = player;
@@ -287,10 +336,10 @@ public class TarotGame
     /// Returns the final results (scores) for each player at the end of the game.
     /// </summary>
     /// <returns>List of scores for each player.</returns>
-    public float[] Results()
+    public static float[] Results(TarotGameState State)
     {
         float[] scores = new float[Constants.Players];
-        float takerScore = Score.TotalScore(this);
+        float takerScore = Score.TotalScore(State);
         float defendersScore = -takerScore / (Constants.Players - 1);
         for (int i = 0; i < Constants.Players; i++)
             scores[i] = i == State.Taker.Value ? takerScore : defendersScore;
@@ -302,63 +351,51 @@ public class TarotGame
     /// Determines whether the game has reached a terminal (end) state.
     /// </summary>
     /// <returns>True if the game is over; otherwise, false.</returns>
-    public bool IsTerminal()
+    public static bool IsTerminal(TarotGameState State)
     {
         return State.Phase is Phase.End;
+    }
+
+    public static Player Next(TarotGameState State)
+    {
+        switch (State.Phase)
+        {
+            case Phase.Bidding:
+                if (State.BidCounter < Constants.BidSize)
+                    return State.Current++;
+                else
+                {
+                    // Move to the next phase after bidding
+                    State.Phase = Phase.Chien;
+                    return State.Taker; // The taker continues after bidding
+                }
+            case Phase.Chien:
+                if (State.DiscardCounter == Constants.ChienSize)
+                    State.Phase = Phase.ChelemDeclaration; // Move to the next phase after chien
+                return State.Taker; // The taker continues after chien
+            case Phase.ChelemDeclaration:
+                if (State.DeclarationCounter == 1)
+                    State.Phase = Phase.PoigneeDeclaration; // Move to the play phase after declarations
+                return State.Current;
+            case Phase.PoigneeDeclaration:
+                if (State.DeclarationCounter > 1)
+                    State.Phase = Phase.Play; // Move to the play phase after declarations
+                return State.Current;
+            case Phase.Play:
+                if (State.DeclarationCounter < Constants.DeclarationSize + 1)
+                    State.Phase = Phase.PoigneeDeclaration; // Move to the poignee declaration phase
+                return State.Current++;
+            default:
+                throw new InvalidOperationException("Invalid game phase for determining next player.");
+        }
     }
 
     /// <summary>
     /// Determines whether the current phase is a chance node (random event).
     /// </summary>
     /// <returns>True if the phase is a chance node; otherwise, false.</returns>
-    public bool IsChance()
+    public static bool IsChance(TarotGameState State)
     {
         return State.Phase is Phase.Bidding or Phase.Chien or Phase.PoigneeDeclaration;
-    }
-
-    /// <summary>
-    /// Creates a deep copy of the current game, including its state.
-    /// </summary>
-    /// <returns>A new TarotGame instance with the same state.</returns>
-    public TarotGame Clone()
-    {
-        return FromState(State);
-    }
-
-    /// <summary>
-    /// Creates a new TarotGame from a given game state.
-    /// </summary>
-    /// <param name="gameState">The game state to copy.</param>
-    /// <returns>A new TarotGame instance initialized with the provided state.</returns>
-    public static TarotGame FromState(TarotGameState gameState)
-    {
-        return new TarotGame
-        {
-            State = new TarotGameState
-            {
-                Current = gameState.Current,
-                Taker = gameState.Taker,
-                CurrentTrick = gameState.CurrentTrick,
-                PublicCards = gameState.PublicCards,
-                PlayedCards = gameState.PlayedCards,
-                PlayedTricks = gameState.PlayedTricks,
-                PlayerHands = gameState.PlayerHands,
-                Chien = gameState.Chien,
-                Discards = gameState.Discards,
-                Bids = gameState.Bids,
-                TakerBid = gameState.TakerBid,
-                Declarations = gameState.Declarations,
-                ChelemDeclared = gameState.ChelemDeclared,
-                BidCounter = gameState.BidCounter,
-                DeclarationCounter = gameState.DeclarationCounter,
-                DiscardCounter = gameState.DiscardCounter,
-                TrickCounter = gameState.TrickCounter,
-                TricksCounter = gameState.TricksCounter,
-                FoolPaid = gameState.FoolPaid,
-                FoolPlayer = gameState.FoolPlayer,
-                FoolTrickIndex = gameState.FoolTrickIndex,
-                Phase = gameState.Phase
-            }
-        };
     }
 }

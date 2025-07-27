@@ -5,7 +5,7 @@ using Tarot.Game;
 public class RisMcts(Player player, int iterations) : IsMcts(player, iterations)
 {
 
-    protected override TarotGameState Determinize(TarotGame game, NodeMcts node)
+    protected override TarotGameState Determinize(TarotGameState state, NodeMcts node)
     {
         throw new NotImplementedException();
     }

@@ -15,7 +15,7 @@ class Program
 
         // Estimativa de tamanho via GC.GetTotalMemory
         long memAntes = GC.GetTotalMemory(true);
-        var tarotGame = new TarotGame();
+        var tarotGame = new TarotGameState();
         long memDepois = GC.GetTotalMemory(true);
         Console.WriteLine($"TarotGame estimativa de memória: {memDepois - memAntes} bytes");
 
@@ -24,6 +24,9 @@ class Program
         Console.WriteLine($"Player tamanho (Marshal): {Marshal.SizeOf<Player>()} bytes");
         Console.WriteLine($"BidAction tamanho (Marshal): {Marshal.SizeOf<BidAction>()} bytes");
         Console.WriteLine($"GenericAction tamanho (Marshal): {Marshal.SizeOf<GenericAction>()} bytes");
+
+        // Tarot game state info
+        Console.WriteLine($"TarotGameState: \n {tarotGame}");
 
         Metrics.Instance.SetOutputFile(parsedArgs.Output);
     }

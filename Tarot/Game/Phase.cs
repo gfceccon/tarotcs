@@ -15,6 +15,6 @@ public enum Phase
     Chien,
     ChelemDeclaration,
     PoigneeDeclaration,
-    Playing,
+    Play,
     End
 }

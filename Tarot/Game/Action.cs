@@ -9,11 +9,10 @@ public static class Action
     /// <param name="state">The current game state</param>
     /// <param name="action">The bid code</param>
     /// <returns>The next player to play</returns>
-    public static Player ApplyBid(TarotGameState state, BidAction _action)
+    public static Player ApplyBid(TarotGameState state, BidAction action)
     {
-        var action = _action.Value;
         if (action < Constants.StartBid || action > Constants.EndBid)
-            throw new ArgumentOutOfRangeException(nameof(_action), "Bid action is out of range.");
+            throw new ArgumentOutOfRangeException(nameof(action), "Bid action is out of range.");
         if (state.Bids.Length > Constants.MaxBidding)
             throw new InvalidOperationException("Maximum number of bids reached.");
 
@@ -27,38 +26,43 @@ public static class Action
             var maxBid = state.Bids.MaxBy(b => b.Value);
             var takerIndex = Array.IndexOf(state.Bids, maxBid);
             state.Taker = new Player((byte)takerIndex);
-            state.Phase = Phase.Chien; // Move to the chien phase
             state.DiscardCounter = 0; // Reset discard counter for chien
-            return state.Taker;
         }
-        else
-        {
-            // Move to the next player
-            var currentPlayer = state.Current.Value;
-            return new Player((byte)((currentPlayer + 1) % Constants.Players));
-        }
+        return TarotGame.Next(state);
     }
 
     /// <summary>
     /// Discard a card to the chien pile.
+    /// If the discard pile is full, fill the player's hand with the chien cards
+    /// that are not in the discard pile.
     /// </summary>
     /// <param name="state">The current game state</param>
     /// <param name="action">The card code</param>
     /// <returns>The next player to play</returns>
-    public static Player ApplyChien(TarotGameState state, CardAction _action)
+    public static Player ApplyChien(TarotGameState state, CardAction action)
     {
-        var action = _action.Value;
         if (action < Constants.StartCard || action > Constants.EndCard)
-            throw new ArgumentOutOfRangeException(nameof(_action), "Card action is out of range.");
+            throw new ArgumentOutOfRangeException(nameof(action), "Card action is out of range.");
+
         if (state.DiscardCounter < Constants.ChienSize)
         {
-            // Add the card to the chien pile and increment the discard counter
-            state.Chien[state.DiscardCounter++] = new CardAction(action);
-            if (state.DiscardCounter == Constants.ChienSize)
-                state.Phase = Phase.PoigneeDeclaration; // Move to the next phase after chien
-            return state.Taker; // Continue with the taker
+            state.Discard[state.DiscardCounter++] = action;
+            return TarotGame.Next(state);
         }
-        else throw new InvalidOperationException("Chien pile is full.");
+
+        var startIndex = state.Taker.Index * Constants.HandSize;
+        var playerHand = state.PlayerHands
+            .Skip(startIndex)
+            .Take(Constants.HandSize)
+            .Concat(state.Chien)
+            .Where(card => !state.Discard.Contains(card))
+            .ToArray();
+
+        Array.Copy(playerHand, 0, state.PlayerHands, startIndex, playerHand.Length);
+
+        state.Chien = state.Discard;
+        state.DeclarationCounter = 0;
+        return TarotGame.Next(state);
     }
 
     /// <summary>
@@ -67,12 +71,19 @@ public static class Action
     /// <param name="state">The current game state</param>
     /// <param name="action">The action code</param>
     /// <returns>The next player to play</returns>
-    public static Player ApplyDeclaration(TarotGameState state, DeclarationAction _action)
+    public static Player ApplyDeclaration(TarotGameState state, DeclarationAction action)
     {
-        var action = _action.Value;
         if (action < Constants.StartDeclaration || action > Constants.EndDeclaration)
-            throw new ArgumentOutOfRangeException(nameof(_action),
+            throw new ArgumentOutOfRangeException(nameof(action),
             "Declaration action is out of range.");
+
+        state.Declarations[state.DeclarationCounter++] = action;
+        if (state.DeclarationCounter == 1)
+        {
+            state.Phase = Phase.PoigneeDeclaration; // Move to poignee declaration phase
+            return state.Taker; // Continue with the taker
+        }
+        state.Phase = Phase.Play; // Move to the play phase after all declarations            
         return state.Current; // Continue with the current player
     }
 
@@ -82,34 +93,28 @@ public static class Action
     /// <param name="state">The current game state</param>
     /// <param name="action">The card code</param>
     /// <returns>The next player to play</returns>
-    public static Player ApplyCard(TarotGameState state, CardAction _action)
+    public static Player ApplyCard(TarotGameState state, CardAction action)
     {
-        var action = _action.Value;
         if (action < Constants.StartCard || action > Constants.EndCard)
-            throw new ArgumentOutOfRangeException(nameof(_action), "Card action is out of range.");
+            throw new ArgumentOutOfRangeException(nameof(action), "Card action is out of range.");
 
         state.CurrentTrick[state.TrickCounter++] = new CardAction(action);
-        if (state.TrickCounter == Constants.TrickSize)
+        if (action == Constants.Fool)
         {
-            // Determine the winner of the trick
-            var winner = Utils.GetTrickWinner(state);
-            var trickIndex = state.TricksCounter / Constants.TrickSize;
-            state.Winners[trickIndex] = winner;
-            state.CurrentTrick = new CardAction[Constants.TrickSize]; // Reset current trick
-            state.TrickCounter = 0; // Reset trick counter
-
-            if (state.TricksCounter == Constants.TricksSize)
-                state.Phase = Phase.End; // Move to end phase if all tricks are played
-            return winner; // Return the winner of the trick
+            state.FoolTrickIndex = state.TricksCounter;
+            state.FoolPlayer = state.Current;
         }
+        if (state.TrickCounter < Constants.TrickSize)
+            return TarotGame.Next(state);
 
-        // TODO Fool logic
+        // Determine the winner of the trick
+        var winner = Utils.GetTrickWinner(state);
+        var trickIndex = state.TricksCounter;
+        state.Winners[trickIndex] = winner;
+        state.CurrentTrick = new CardAction[Constants.TrickSize]; // Reset current trick
+        state.TrickCounter = 0; // Reset trick counter
+        state.TricksCounter++; // Increment tricks counter
 
-        // TODO Next phase and player
-        if (state.TricksCounter == 0 && state.DeclarationCounter < Constants.Players)
-            state.Phase = Phase.PoigneeDeclaration;
-        else if (state.TricksCounter == Constants.TricksSize)
-            state.Phase = Phase.End;
-        return state.Current;
+        return TarotGame.Next(state);
     }
 }

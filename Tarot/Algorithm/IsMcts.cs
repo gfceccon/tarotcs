@@ -24,42 +24,41 @@ public abstract class IsMcts(Player player, int iterations)
     public long SimulationsRun;
     public long NodesExpanded;
     public long Determinizations;
-    protected abstract TarotGameState Determinize(TarotGame game, NodeMcts node);
+    protected abstract TarotGameState Determinize(TarotGameState state, NodeMcts node);
 
-    public virtual void Run(TarotGame game)
+    public virtual void Run(TarotGameState state)
     {
-        var node = PreRun(game);
+        var node = PreRun(state);
         for (int i = 0; i < Iterations; i++)
         {
-            var state = Determinize(game, node);
-            var _game = TarotGame.FromState(state);
-            node = Select(_game, node);
-            Expand(_game, node);
-            Simulate(_game, node);
-            Backpropagate(node, _game);
+            var _state = Determinize(state, node);
+            node = Select(_state, node);
+            Expand(_state, node);
+            Simulate(_state, node);
+            Backpropagate(node, _state);
         }
-        PostRun(game, node);
+        PostRun(state, node);
     }
-    protected virtual bool ShouldExpand(TarotGame game, NodeMcts node)
+    protected virtual bool ShouldExpand(TarotGameState state, NodeMcts node)
     {
-        var legalActions = GetLegalActions(game);
+        var legalActions = GetLegalActions(state);
         if (legalActions.Any(action => !node.ExpandedActions.Contains(action)))
             return true;
         return false;
     }
 
-    public virtual NodeMcts Select(TarotGame game, NodeMcts node)
+    public virtual NodeMcts Select(TarotGameState state, NodeMcts node)
     {
-        var legalActions = GetLegalActions(game);
+        var legalActions = GetLegalActions(state);
         return node.Select(legalActions);
     }
 
-    public virtual void Expand(TarotGame game, NodeMcts node)
+    public virtual void Expand(TarotGameState state, NodeMcts node)
     {
-        var legalActions = GetLegalActions(game);
+        var legalActions = GetLegalActions(state);
         foreach (var action in legalActions)
         {
-            if (!ShouldExpand(game, node))
+            if (!ShouldExpand(state, node))
                 break;
 
             var childNode = new NodeMcts { Action = action, Parent = node };
@@ -70,24 +69,24 @@ public abstract class IsMcts(Player player, int iterations)
         NodesExpanded++;
     }
 
-    public virtual void Simulate(TarotGame game, NodeMcts node)
+    public virtual void Simulate(TarotGameState state, NodeMcts node)
     {
-        TarotGame state = game.Clone();
-        while (!state.IsTerminal())
-            SimulationStep(state, node);
+        TarotGameState clonedState = state.Clone();
+        while (!TarotGame.IsTerminal(clonedState))
+            SimulationStep(clonedState, node);
     }
-    public virtual bool SimulationStep(TarotGame game, NodeMcts node)
+    public virtual bool SimulationStep(TarotGameState state, NodeMcts node)
     {
-        var legalActions = GetLegalActions(game);
+        var legalActions = GetLegalActions(state);
         if (legalActions.Length == 0) return false;
         var action = legalActions[Random.Shared.Next(legalActions.Length)];
-        game.ApplyAction(action);
+        TarotGame.ApplyAction(state, action);
         return true;
     }
 
-    public virtual void Backpropagate(NodeMcts? node, TarotGame game)
+    public virtual void Backpropagate(NodeMcts? node, TarotGameState state)
     {
-        float reward = game.Results()[Player.Value];
+        float reward = TarotGame.Results(state)[Player.Index];
         while (node != null)
         {
             node.Value += reward;
@@ -96,12 +95,12 @@ public abstract class IsMcts(Player player, int iterations)
         }
     }
 
-    public virtual GenericAction[] GetLegalActions(TarotGame game)
+    public virtual GenericAction[] GetLegalActions(TarotGameState state)
     {
-        return game.GetLegalActions();
+        return TarotGame.GetLegalActions(state);
     }
 
-    public virtual NodeMcts PreRun(TarotGame game)
+    public virtual NodeMcts PreRun(TarotGameState state)
     {
         IterationsRun = 0;
         NodesCreated = 0;
@@ -111,16 +110,16 @@ public abstract class IsMcts(Player player, int iterations)
 
         return Root;
     }
-    public virtual void PostRun(TarotGame game, NodeMcts node)
+    public virtual void PostRun(TarotGameState state, NodeMcts node)
     {
         TotalNodesCreated += NodesCreated;
         TotalSimulationsRun += SimulationsRun;
         TotalNodesExpanded += NodesExpanded;
         TotalDeterminizations += Determinizations;
-        Metrics.Instance.RecordMetric("IterationsRun", game.State, IterationsRun);
-        Metrics.Instance.RecordMetric("NodesCreated", game.State, TotalNodesCreated);
-        Metrics.Instance.RecordMetric("SimulationsRun", game.State, TotalSimulationsRun);
-        Metrics.Instance.RecordMetric("NodesExpanded", game.State, TotalNodesExpanded);
-        Metrics.Instance.RecordMetric("Determinizations", game.State, TotalDeterminizations);
+        Metrics.Instance.RecordMetric("IterationsRun", state, IterationsRun);
+        Metrics.Instance.RecordMetric("NodesCreated", state, TotalNodesCreated);
+        Metrics.Instance.RecordMetric("SimulationsRun", state, TotalSimulationsRun);
+        Metrics.Instance.RecordMetric("NodesExpanded", state, TotalNodesExpanded);
+        Metrics.Instance.RecordMetric("Determinizations", state, TotalDeterminizations);
     }
 }

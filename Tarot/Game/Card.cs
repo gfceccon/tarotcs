@@ -31,6 +31,26 @@ public readonly struct CardAction
         return !(left == right);
     }
 
+    public static bool operator <(CardAction left, CardAction right)
+    {
+        return left.Value < right.Value;
+    }
+    
+    public static bool operator >(CardAction left, CardAction right)
+    {
+        return left.Value > right.Value;
+    }
+
+    public static bool operator <(CardAction left, byte right)
+    {
+        return left.Value < right;
+    }
+    
+    public static bool operator >(CardAction left, byte right)
+    {
+        return left.Value > right;
+    }
+
     public static implicit operator byte(CardAction action) => action.Value;
     public static implicit operator CardAction(byte value) => new(value);
 }
@@ -53,13 +73,12 @@ public static class Card
     /// Shuffle the deck and deals cards to players and returns the hands and chien.
     /// </summary>
     /// <returns>Tuple: List of player hands, chien cards.</returns>
-    public static (List<CardAction[]> hands, CardAction[] chien) DealCards()
+    public static (CardAction[] hands, CardAction[] chien) DealCards()
     {
         var cards = Enumerable.Range(0, Constants.DeckSize).Select(i => new CardAction((byte)i)).ToArray();
         Rng.Random.Shuffle(cards);
         var chien = cards.Take(Constants.ChienSize).ToArray();
-        cards = cards.Skip(Constants.ChienSize).ToArray();
-        var hands = cards.Chunk(Constants.HandSize).ToList();
+        var hands = cards.Skip(Constants.ChienSize).ToArray();
         return (hands, chien);
     }
     /// <summary>

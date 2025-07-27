@@ -40,7 +40,7 @@ public static class Score
                     score += Card.Value(card);
                 }
             }
-            if (state.FoolTrickIndex == trick && state.FoolPlayer == taker.Value)
+            if (state.FoolTrickIndex == trick && state.FoolPlayer == taker)
             {
                 bouts++;
                 score += Card.Value(Constants.Fool);
@@ -51,14 +51,14 @@ public static class Score
     }
 
     /// <summary>
-    /// Returns the total score for the Tarot game.
+    /// Returns the total score for the Tarot game state.
     /// This includes bonus points for declarations.
     /// It returns the total score for the taker.
     /// If the taker failed, the score is negative.
     /// </summary>
-    /// <param name="game">The game state</param>
+    /// <param name="state">The game state</param>
     /// <returns>The final taker score considering bonus</returns>
-    public static float TotalScore(TarotGame game)
+    public static float TotalScore(TarotGameState state)
     {
         // TODO Total Score
         // Only taker can declare chelem.

@@ -1,10 +1,15 @@
 ﻿namespace Tarot.Game;
 
-// TODO Util for fool and heuristics
 public static class Utils
 {
     public static int GetFoolReplacement(TarotGameState state)
     {
+        var foolIndex = state.FoolTrickIndex;
+        var foolPlayer = state.FoolPlayer;
+        var foolTrick = state.PlayedTricks.Skip(foolIndex * Constants.TrickSize)
+            .Take(Constants.TrickSize).ToArray();
+        var winner = state.Winners[foolIndex];
+        var isTaker = state.Taker == foolPlayer;
         // TODO Implement logic to determine the fool replacement
         throw new NotImplementedException();
     }
@@ -36,11 +41,5 @@ public static class Utils
         }
         var playerIndex = Array.IndexOf(state.CurrentTrick, bestCard);
         return new Player((byte)playerIndex);
-    }
-
-    public static int GetChienDiscard(TarotGameState state)
-    {
-        // TODO Implement logic to determine the chien discard
-        throw new NotImplementedException();
     }
 }

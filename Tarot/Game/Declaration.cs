@@ -17,6 +17,24 @@ public readonly struct DeclarationAction(byte value) : IEquatable<DeclarationAct
         return Value == other.Value;
     }
 
+
+    public static bool operator <(DeclarationAction left, DeclarationAction right)
+    {
+        return left.Value < right.Value;
+    }
+    public static bool operator >(DeclarationAction left, DeclarationAction right)
+    {
+        return left.Value > right.Value;
+    }
+    public static bool operator <(DeclarationAction left, byte right)
+    {
+        return left.Value < right;
+    }
+    public static bool operator >(DeclarationAction left, byte right)
+    {
+        return left.Value > right;
+    }
+
     public override int GetHashCode()
     {
         return Value.GetHashCode();
