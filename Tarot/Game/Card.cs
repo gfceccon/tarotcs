@@ -1,59 +1,96 @@
 ﻿
 namespace Tarot.Game;
 
+public readonly struct CardAction
+{
+    public byte Value { get; }
+    public CardAction(byte value)
+    {
+        var v = value + 1;
+        if (v < Constants.StartCard || v > Constants.EndCard)
+            throw new ArgumentOutOfRangeException(nameof(value), "Card action is out of range.");
+        Value = (byte)v; // Adjusting to 1-based index
+    }
+    public override bool Equals(object? obj)
+    {
+        if (obj is null) return false;
+        if (obj.GetType() != GetType()) return false;
+        return obj is CardAction card && Value == card.Value;
+    }
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
+    public static bool operator ==(CardAction left, CardAction right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(CardAction left, CardAction right)
+    {
+        return !(left == right);
+    }
+
+    public static implicit operator byte(CardAction action) => action.Value;
+    public static implicit operator CardAction(byte value) => new(value);
+}
+
+
 /// <summary>
 /// This class contains the card actions for the Tarot game.
 /// It provides methods to deal cards, determine suits and ranks, and calculate card values.
-/// All cards are index based, from 0 to 77.
+/// All cards are 1-based, from 1 to 78.
 /// The suits are Spades, Hearts, Clubs, Diamonds.
-/// The suits cards range from 0 to 55 (14 cards each for Spades, Hearts, Clubs, Diamonds).
-/// The trumps are from 56 to 77, with special cards like:
-/// - The Fool (56)
-/// - The Petit (57)
-/// - The Monde (77)
+/// The suits cards range from 1 to 56 (14 cards each for Spades, Hearts, Clubs, Diamonds).
+/// The trumps are from 57 to 78, with special cards like:
+/// - The Fool (57)
+/// - The Petit (58)
+/// - The Monde (78)
 /// </summary>
 public static class Card
 {
     /// <summary>
     /// Shuffle the deck and deals cards to players and returns the hands and chien.
     /// </summary>
-    /// <returns>List of byte array, first 4 are player hands, last array is the chien cards.</returns>
-    public static List<byte[]> DealCards()
+    /// <returns>Tuple: List of player hands, chien cards.</returns>
+    public static (List<CardAction[]> hands, CardAction[] chien) DealCards()
     {
-        var cards = Enumerable.Range(0, Constants.DeckSize).Select(i => (byte)i).ToArray();
+        var cards = Enumerable.Range(0, Constants.DeckSize).Select(i => new CardAction((byte)i)).ToArray();
         Rng.Random.Shuffle(cards);
         var chien = cards.Take(Constants.ChienSize).ToArray();
-        cards = [.. cards.Skip(Constants.ChienSize)];
+        cards = cards.Skip(Constants.ChienSize).ToArray();
         var hands = cards.Chunk(Constants.HandSize).ToList();
-        hands.Add(chien);
-        return hands;
+        return (hands, chien);
     }
     /// <summary>
     /// Returns the suit of a card.
     /// </summary>
     /// <param name="card">The card value.</param>
     /// <returns>Suit index (0: Spades, 1: Hearts, 2: Clubs, 3: Diamonds, 4: Trump).</returns>
-    public static byte Suit(byte card)
+    public static byte Suit(CardAction _card)
     {
+        var card = _card.Value;
         return card switch
         {
-            < 14 => 0,
-            < 28 => 1,
-            < 42 => 2,
-            < 56 => 3,
-            _ => 4
+            <= Constants.EndSpades => Constants.Spades,
+            <= Constants.EndHearts => Constants.Hearts,
+            <= Constants.EndClubs => Constants.Clubs,
+            <= Constants.EndDiamonds => Constants.Diamonds,
+            <= Constants.EndTrumps => Constants.Trumps,
+            _ => throw new ArgumentOutOfRangeException(nameof(_card), "Card action is out of range.")
         };
     }
     /// <summary>
     /// Returns the rank of a card.
     /// </summary>
     /// <param name="card">The card value.</param>
-    /// <returns>Rank index (0-13 for suits, 0-21 for trumps).</returns>
-    public static byte Rank(byte card)
+    /// <returns>Rank index (1-14 for suits, 0-22 for trumps).</returns>
+    public static byte Rank(CardAction _card)
     {
-        if (card < 56)
-            return (byte)(card % 14); // 0 to 13 for suits
-        return (byte)(card - 56);     // 0 to 21 for trumps
+        var card = _card.Value - 1; // Adjusting to 0-based index
+        if (card < Constants.EndSuits)
+            return (byte)(card % Constants.CardsPerSuit + 1); // 1 to 14 for suits
+        return (byte)(card - Constants.Fool + 1);     // 0 to 22 for trumps
     }
 
     private static readonly string[] SuitNames = ["Spades", "Hearts", "Clubs", "Diamonds"];
@@ -65,11 +102,11 @@ public static class Card
     /// </summary>
     /// <param name="card">The card value.</param>
     /// <returns>Card name as a string.</returns>
-    public static string Name(byte card)
+    public static string Name(CardAction _card)
     {
-        var suit = Suit(card);
-        var rank = Rank(card);
-        if (!IsTrump(card)) return $"{RankNames[rank]} of {SuitNames[suit]}";
+        var suit = Suit(_card);
+        var rank = Rank(_card);
+        if (!IsTrump(_card)) return $"{RankNames[rank - 1]} of {SuitNames[suit]}";
         if (rank == Constants.Petit)
             return "The Little One";
         else if (rank == Constants.Monde)
@@ -84,17 +121,17 @@ public static class Card
     /// </summary>
     /// <param name="card">The card value</param>
     /// <returns>The value</returns>
-    public static float Value(byte card)
+    public static float Value(CardAction _card)
     {
-        var rank = Rank(card);
-        if (IsFool(card) || IsBout(card)) return 4.5f;
-        if (IsKing(card)) return 4.5f;
+        var rank = Rank(_card);
+        if (IsFool(_card) || IsBout(_card)) return 4.5f;
         return rank switch
         {
-            12 => 3.5f, // Queen
-            11 => 2.5f, // Knight
-            10 => 1.5f, // Jack
-            _ => 0.5f    // Others
+            Constants.King => 4.5f,
+            Constants.Queen => 3.5f,
+            Constants.Knight => 2.5f,
+            Constants.Jack => 1.5f,
+            _ => 0.5f
         };
     }
 
@@ -103,9 +140,9 @@ public static class Card
     /// </summary>
     /// <param name="card">The card value</param>
     /// <returns>True or False</returns>
-    public static bool IsKing(byte card)
+    public static bool IsKing(CardAction _card)
     {
-        return Suit(card) < 4 && Rank(card) == 13;
+        return _card.Value <= Constants.EndSuits && Rank(_card) == Constants.King;
     }
 
     /// <summary>
@@ -113,9 +150,10 @@ public static class Card
     /// </summary>
     /// <param name="card">The card value</param>
     /// <returns>True or False</returns>
-    public static bool IsTrump(byte card)
+    public static bool IsTrump(CardAction _card)
     {
-        return Suit(card) == 4;
+        var card = _card.Value;
+        return card > Constants.EndSuits && card <= Constants.EndTrumps;
     }
 
     /// <summary>
@@ -123,8 +161,9 @@ public static class Card
     /// </summary>
     /// <param name="card">The card value</param>
     /// <returns>True or False</returns>
-    public static bool IsFool(byte card)
+    public static bool IsFool(CardAction _card)
     {
+        var card = _card.Value;
         return card == Constants.Fool;
     }
 
@@ -133,19 +172,19 @@ public static class Card
     /// </summary>
     /// <param name="card">The card value</param>
     /// <returns>True or False</returns>
-    public static bool IsBout(byte card)
+    public static bool IsBout(CardAction _card)
     {
-        return IsFool(card) || (IsTrump(card) && (Rank(card) == Constants.Petit || Rank(card) == Constants.Monde));
+        return IsFool(_card) ||
+        Rank(_card) == Constants.Petit ||
+        Rank(_card) == Constants.Monde;
     }
-
-    // 
 
     /// <summary>
     /// Sums the points of a list of cards
     /// </summary>
     /// <param name="cards">The card value</param>
     /// <returns>True or False</returns>
-    public static float Points(List<byte> cards)
+    public static float Points(List<CardAction> cards)
     {
         return cards.Sum(Value);
     }

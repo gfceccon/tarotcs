@@ -2,7 +2,7 @@
 
 using Tarot.Game;
 
-public class RisMcts(byte player, int iterations) : IsMcts(iterations, player)
+public class RisMcts(Player player, int iterations) : IsMcts(player, iterations)
 {
 
     protected override TarotGameState Determinize(TarotGame game, NodeMcts node)

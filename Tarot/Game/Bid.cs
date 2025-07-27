@@ -1,6 +1,37 @@
 ﻿namespace Tarot.Game;
 
-using BidAction = byte;
+public readonly struct BidAction(byte value) : IEquatable<BidAction>
+{
+    public byte Value { get; } = value;
+    public override bool Equals(object? obj)
+    {
+        if (obj is null) return false;
+        if (obj.GetType() != GetType()) return false;
+        return obj is BidAction bid && Value == bid.Value;
+    }
+
+    public bool Equals(BidAction other)
+    {
+        return Value == other.Value;
+    }
+
+    public override int GetHashCode()
+    {
+        return Value.GetHashCode();
+    }
+    public static bool operator ==(BidAction left, BidAction right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(BidAction left, BidAction right)
+    {
+        return !(left == right);
+    }
+    
+    public static implicit operator byte(BidAction action) => action.Value;
+    public static implicit operator BidAction(byte value) => new(value);
+}
 
 /// <summary>
 /// This class contains the bid actions for the Tarot game.
@@ -14,11 +45,11 @@ using BidAction = byte;
 /// </summary>
 public static class Bid
 {
-    public const BidAction Passe = Constants.StartBid + 0;
-    public const BidAction Petit = Constants.StartBid + 1;
-    public const BidAction Garde = Constants.StartBid + 2;
-    public const BidAction GardeSans = Constants.StartBid + 3;
-    public const BidAction GardeContre = Constants.StartBid + 4;
+    public static readonly BidAction Passe = new(Constants.StartBid + 0);
+    public static readonly BidAction Petit = new(Constants.StartBid + 1);
+    public static readonly BidAction Garde = new(Constants.StartBid + 2);
+    public static readonly BidAction GardeSans = new(Constants.StartBid + 3);
+    public static readonly BidAction GardeContre = new(Constants.StartBid + 4);
 
     /// <summary>
     /// Returns the name of the bid action.
@@ -27,15 +58,12 @@ public static class Bid
     /// <returns>A string with the name</returns>
     public static string Name(BidAction bid)
     {
-        return bid switch
-        {
-            Petit => "Petit",
-            Garde => "Garde",
-            GardeSans => "Garde Sans Chien",
-            GardeContre => "Garde Contre Chien",
-            Passe => "Passe",
-            _ => "Unknown"
-        };
+        if (bid == Passe) return "Passe";
+        if (bid == Petit) return "Petit";
+        if (bid == Garde) return "Garde";
+        if (bid == GardeSans) return "Garde Sans Chien";
+        if (bid == GardeContre) return "Garde Contre Chien";
+        return "Unknown";
     }
 
     /// <summary>
@@ -47,13 +75,11 @@ public static class Bid
     /// <returns>Int with score multiplier</returns>
     public static int Multiplier(BidAction bid)
     {
-        return bid switch
-        {
-            Petit => 1,
-            Garde => 2,
-            GardeSans => 4,
-            GardeContre => 6,
-            _ => 0
-        };
+        if (bid == Passe) return 0;
+        if (bid == Petit) return 1;
+        if (bid == Garde) return 2;
+        if (bid == GardeSans) return 4;
+        if (bid == GardeContre) return 6;
+        throw new ArgumentOutOfRangeException(nameof(bid), "Bid action is out of range.");
     }
 }

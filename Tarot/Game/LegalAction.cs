@@ -2,14 +2,12 @@ using System;
 
 namespace Tarot.Game;
 
-
-// TODO All Legal Actions
 public class LegalAction
 {
-    public static byte[] GetLegalBidActions(TarotGameState state)
+    public static BidAction[] GetLegalBidActions(TarotGameState state)
     {
-        byte[] currentBids = state.Bids;
-        var legalBids = new List<byte>
+        BidAction[] currentBids = state.Bids;
+        var legalBids = new List<BidAction>
         {
             Bid.Passe,
             Bid.Petit,
@@ -19,34 +17,40 @@ public class LegalAction
         };
         var maxBid = currentBids.Max();
 
-        return [.. legalBids.Where(bid => bid == Bid.Passe || bid > maxBid)];
+        return [.. legalBids.Where(bid => bid == Bid.Passe || bid.Value > maxBid.Value)];
     }
 
-    public static byte[] GetLegalPlayActions(TarotGameState state)
+    public static CardAction[] GetLegalPlayActions(TarotGameState state)
     {
+        // TODO Implement logic to determine legal play actions
         throw new NotImplementedException();
     }
-    public static byte[] GetLegalDiscardActions(TarotGameState state)
+    public static CardAction[] GetLegalDiscardActions(TarotGameState state)
     {
+        // TODO Implement logic to determine legal discard actions
         throw new NotImplementedException();
     }
-    public static byte[] GetLegalDeclareActions(TarotGameState state)
+    public static DeclarationAction[] GetLegalDeclarationActions(TarotGameState state)
     {
-        throw new NotImplementedException();
-    }
-
-    public static List<Tuple<byte, float>> GetBidChances(TarotGameState state)
-    {
+        // TODO Implement logic to determine legal declaration actions
         throw new NotImplementedException();
     }
 
-    public static List<Tuple<byte, float>> GetDiscardChances(TarotGameState state)
+    public static BidAction[] GetBidChances(TarotGameState state)
     {
+        // TODO Implement logic to determine bid chances
         throw new NotImplementedException();
     }
 
-    public static List<Tuple<byte, float>> GetDeclareChances(TarotGameState state)
+    public static CardAction[] GetDiscardChances(TarotGameState state)
     {
+        // TODO Implement logic to determine discard chances
+        throw new NotImplementedException();
+    }
+
+    public static DeclarationAction[] GetDeclarationChances(TarotGameState state)
+    {
+        // TODO Implement logic to determine declaration chances
         throw new NotImplementedException();
     }
 }

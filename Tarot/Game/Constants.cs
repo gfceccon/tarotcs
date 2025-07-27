@@ -14,14 +14,33 @@ public static class Constants
     public const byte ChienId = 5;
     public const int SuitSize = 14;
     public const int RankSize = 4;
-    public const int Fool = SuitSize * RankSize;
-    public const int Petit = Fool + 1;
-    public const int Monde = Fool + 21;
+    public const int Fool = 57;
+    public const int Petit = 58;
+    public const int Monde = 78;
+
+    // Card constants
+    /// Suit index (0: Spades, 1: Hearts, 2: Clubs, 3: Diamonds, 4: Trump)
+    public const byte EndSpades = 14; // 1-14 for Spades
+    public const byte EndHearts = 28; // 14-28 for Hearts
+    public const byte EndClubs = 42; // 28-42 for Clubs
+    public const byte EndDiamonds = 56; // 42-56 for Diamonds
+    public const byte EndSuits = 56; // 1-56 for Suits
+    public const byte EndTrumps = 78; // 56-78 for Trumps
+    public const byte Spades = 0;
+    public const byte Hearts = 1;
+    public const byte Clubs = 2;
+    public const byte Diamonds = 3;
+    public const byte Trumps = 4;
+    public const byte Jack = 11;
+    public const byte Queen = 12;
+    public const byte Knight = 13;
+    public const byte King = 14;
+    public const byte CardsPerSuit = 14;
 
     // Game constants
     public const int DeckSize = 78;
     public const int HandSize = 18;
-    public const int TrickSize = 5; // 1 winner + 4 cards
+    public const int TrickSize = 4;
     public const int TricksSize = 19;
     public const int BidSize = 4;
     public const int ChienSize = 6;
@@ -34,11 +53,11 @@ public static class Constants
     public const int MaxActions = MaxCards + MaxBidding + MaxDeclarations;
 
     // Action codes
-    public const byte StartCard = 0; // 0 - 77 for cards
+    public const byte StartCard = 1; // 1 - 78 for cards
     public const byte EndCard = StartCard + MaxCards - 1;
-    public const byte StartBid = EndCard + 1; // 78 - 82 for bids
+    public const byte StartBid = EndCard + 1; // 79 - 83 for bids
     public const byte EndBid = StartBid + MaxBidding - 1;
-    public const byte StartDeclaration = EndBid + 1; // 83 - 85 for declarations
+    public const byte StartDeclaration = EndBid + 1; // 84 - 86 for declarations
     public const byte EndDeclaration = StartDeclaration + MaxDeclarations - 1;
 
     // MCTS parameters

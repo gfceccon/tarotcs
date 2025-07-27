@@ -2,16 +2,23 @@ namespace Tarot.Algorithm;
 
 using Math = MathF;
 using System;
+using Tarot.Game;
+
 public class NodeMcts
 {
-    public byte Action = 0;
+    public GenericAction Action = new();
     public NodeMcts? Parent;
-    public Dictionary<byte, NodeMcts> Children = new();
+    public Dictionary<GenericAction, NodeMcts> Children = new();
     public InformationSet InformationSet = new();
-    public HashSet<byte> ExpandedActions = [];
+    public HashSet<GenericAction> ExpandedActions = new();
     public float Value = 0.0f;
     public int Visits = 0;
 
+    /// <summary>
+    /// Calculates the UCB1 value for this node.
+    /// </summary>
+    /// <param name="explorationConstant">UCB exploration constant (default 1.41)</param>
+    /// <returns></returns>
     public float Ucb1(float explorationConstant = 1.41f)
     {
         var q = Value / Visits;
@@ -19,11 +26,19 @@ public class NodeMcts
         return q + u;
     }
 
-    public NodeMcts Select(byte[] legalActions)
+    /// <summary>
+    /// Selects a child node based on the UCB1 value.
+    /// If no children are available, selects randomly.
+    /// </summary>
+    /// <param name="legalActions"></param>
+    /// <returns></returns>
+    public NodeMcts Select(GenericAction[] legalActions)
     {
+        // Check if there are expanded actions within the legal actions
         var validActions = ExpandedActions.Intersect(legalActions);
         if (validActions.Any()) return Children.MaxBy(pair => pair.Value.Ucb1()).Value;
 
+        // If no expanded actions, select a random action from the legal actions
         var randomIndex = Random.Shared.Next(legalActions.Length);
         var randomAction = legalActions[randomIndex];
 
@@ -36,7 +51,13 @@ public class NodeMcts
 
     }
 
-    public bool ShouldExpand(float constant, float alpha)
+    /// <summary>
+    /// Progressive Widening equation.
+    /// </summary>
+    /// <param name="constant">PW constant (default 2.0)</param>
+    /// <param name="alpha">PW exponent (default 0.5)</param>
+    /// <returns></returns>
+    public bool ShouldExpand(float constant = 2.0f, float alpha = 0.5f)
     {
         if (Visits == 0) return true;
         return ExpandedActions.Count < constant * Math.Pow(Visits, alpha);

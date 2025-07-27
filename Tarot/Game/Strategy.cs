@@ -7,7 +7,6 @@
 /// - Max: A strategy that use the maximum value card.
 /// - Random: A strategy that randomly selects a card.
 /// - RisMcts: A strategy that uses Re-determinization Information Set Monte Carlo Tree Search (RIS-MCTS).
-/// - RaveMcts: A strategy that uses Rapid Action Value Estimation MCTS.
 /// </summary>
 public enum Strategy
 {
@@ -15,5 +14,4 @@ public enum Strategy
     Max,
     Random,
     RisMcts,
-    RaveMcts,
 }

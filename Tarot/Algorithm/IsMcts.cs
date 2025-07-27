@@ -4,7 +4,7 @@ using Tarot.Game;
 using Tarot.Metric;
 
 
-public abstract class IsMcts(int iterations, byte player)
+public abstract class IsMcts(Player player, int iterations)
 {
 
     public NodeMcts Root = new();
@@ -13,7 +13,7 @@ public abstract class IsMcts(int iterations, byte player)
     public float PwConstant = Constants.ProgWideningConstant;
     public float PwAlpha = Constants.ProgWideningAlpha;
 
-    public byte Player = player;
+    public Player Player = player;
     public long TotalNodesCreated;
     public long TotalSimulationsRun;
     public long TotalNodesExpanded;
@@ -87,7 +87,7 @@ public abstract class IsMcts(int iterations, byte player)
 
     public virtual void Backpropagate(NodeMcts? node, TarotGame game)
     {
-        float reward = game.Results()[Player];
+        float reward = game.Results()[Player.Value];
         while (node != null)
         {
             node.Value += reward;
@@ -96,7 +96,7 @@ public abstract class IsMcts(int iterations, byte player)
         }
     }
 
-    public virtual byte[] GetLegalActions(TarotGame game)
+    public virtual GenericAction[] GetLegalActions(TarotGame game)
     {
         return game.GetLegalActions();
     }

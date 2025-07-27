@@ -24,12 +24,13 @@ public static class Score
     /// <returns>The current private know points</returns>
     public static Tuple<float, bool> PartialScore(TarotGameState state)
     {
-        byte taker = state.Taker;
+        Player taker = state.Taker;
         float score = 0;
         int bouts = 0;
+        // TODO Change logic to new tricks system
         for (int trick = 0; trick < Constants.TricksSize; trick++)
         {
-            if (state.PlayedTricks[trick * Constants.TrickSize] == taker)
+            if (state.PlayedTricks[trick * Constants.TrickSize] == taker.Value)
             {
                 for (int j = 1; j < Constants.TrickSize && j < state.PlayedTricks.Length; j++)
                 {
@@ -39,7 +40,7 @@ public static class Score
                     score += Card.Value(card);
                 }
             }
-            if (state.FoolTrickIndex == trick && state.FoolPlayer == taker)
+            if (state.FoolTrickIndex == trick && state.FoolPlayer == taker.Value)
             {
                 bouts++;
                 score += Card.Value(Constants.Fool);

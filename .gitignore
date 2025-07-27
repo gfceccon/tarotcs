@@ -16,6 +16,7 @@ x86/
 build/
 [Bb]in/
 [Oo]bj/
+.bin/
 
 # Rider caches
 .idea/.idea.*

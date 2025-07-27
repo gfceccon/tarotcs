@@ -27,9 +27,7 @@ public class Metrics
     public void RecordMetric(string metricName, TarotGameState state, long value)
     {
         if (!_data.ContainsKey(metricName))
-        {
-            _data[metricName] = new List<long>();
-        }
+            _data[metricName] = [];
 
         _data[metricName].Add(value);
     }
